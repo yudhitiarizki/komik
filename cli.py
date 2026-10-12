@@ -63,7 +63,7 @@ def main():
             path = os.path.join(folder, f"{n:03d}{ext}")
             if os.path.exists(path):
                 continue
-            r = src.api.get(url, headers=src.image_headers)
+            r = getattr(src, "api", None) and src.api.get(url, headers=src.image_headers) or src.http.get(url, headers=src.image_headers)
             with open(path, "wb") as f:
                 f.write(r.content)
             print(path)
