@@ -51,7 +51,7 @@ class Shinigami(Source):
     def list_chapters(self, comic_id):
         chapters, page = [], 1
         while True:
-            j = self.api.get_json(f"chapter/{comic_id}/list", params={"page": page, "page_size": 100})
+            j = self.api.get_json(f"chapter/{comic_id}/list", params={"page": page, "page_size": 100, "sort_by": "chapter_number", "sort_order": "desc"})
             chapters += [
                 Chapter(
                     id=d["chapter_id"],
