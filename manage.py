@@ -7,6 +7,7 @@
   python manage.py track 12                       # pick a comic (first pick fetches everything)
   python manage.py tracked                        # your comics + unread counts
   python manage.py check [--source komiku]        # one update check now
+  python manage.py serve [--scheduler]            # web UI + API at http://127.0.0.1:8000
   python manage.py run                            # scheduler: checks every source on its interval
   python manage.py read 12 [--chapter 40]         # mark as read
   python manage.py untrack 12
@@ -148,6 +149,16 @@ def cmd_run(a, conn):
         pass
 
 
+def cmd_serve(a, conn):
+    import uvicorn
+
+    from komik.api import create_app
+
+    conn.close()
+    app = create_app(a.db, scheduler=a.scheduler, default_user=a.user)
+    uvicorn.run(app, host=a.host, port=a.port, log_level="info")
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--db", help=f"database path (default {db.DEFAULT_PATH}, or $KOMIK_DB)")
@@ -165,6 +176,7 @@ def main():
     s = sub.add_parser("check"); s.add_argument("--source", choices=SOURCES); s.set_defaults(fn=cmd_check)
     s = sub.add_parser("read"); s.add_argument("comic_id", type=int); s.add_argument("--chapter", type=float); s.set_defaults(fn=cmd_read)
     s = sub.add_parser("log"); s.add_argument("--limit", type=int, default=20); s.set_defaults(fn=cmd_log)
+    s = sub.add_parser("serve"); s.add_argument("--host", default="127.0.0.1"); s.add_argument("--port", type=int, default=8000); s.add_argument("--scheduler", action="store_true", help="also run the update checker inside the server"); s.set_defaults(fn=cmd_serve)
     s = sub.add_parser("run"); s.add_argument("--interval", type=int, help="override every source's interval (minutes)"); s.set_defaults(fn=cmd_run)
 
     a = p.parse_args()

@@ -27,6 +27,27 @@ python manage.py read 12 [--chapter 40]        # mark as read
 python manage.py log                           # sync history
 python manage.py --user budi track 12          # other users share the same comic data
 ```
+## Web UI + API
+```
+python manage.py serve [--scheduler] [--port 8000]   # http://127.0.0.1:8000
+```
+`--scheduler` also runs the update checker inside the server (per-source intervals).
+The server binds to localhost only and has no login: do not expose it to the internet as is.
+
+| Endpoint | |
+|---|---|
+| `GET /api/sources` | sources + comic / tracked counts |
+| `GET /api/comics?scope=drafts\|tracked\|all&source=&q=&limit=&offset=` | list (tracked ones include `unread`) |
+| `GET /api/comics/{id}` | detail + chapters (with `read` flag) |
+| `POST /api/comics/{id}/track` / `DELETE` | pick / drop (first pick fetches every chapter) |
+| `POST /api/comics/{id}/read?upto=N` | mark read up to chapter number N (default: latest) |
+| `GET /api/chapters/{id}/images` | live image URLs for the reader |
+| `POST /api/sources/{name}/sync?pages=N` | refresh the draft list |
+| `POST /api/check?source=` | check tracked comics for new chapters now |
+| `GET /api/log` | sync history |
+
+All comic endpoints accept `?user=<name>` (default `local`). Interactive docs at `/docs`.
+
 Database path: `data/komik.db` or `$KOMIK_DB` / `--db`.
 
 Design notes

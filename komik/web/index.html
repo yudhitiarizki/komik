@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Komik Tracker</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%233b5bdb'/%3E%3Cpath d='M4 4h5a3 3 0 010 6H4z' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #ffffff; --text: #1b1f27; --muted: #667085; --line: #e3e6eb;
+    --accent: #3b5bdb; --accent-text: #ffffff; --ok: #2b8a3e; --warn: #e8590c; --shadow: 0 1px 3px rgba(0,0,0,.08);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #111418; --panel: #1a1f26; --text: #e8eaee; --muted: #98a1b0; --line: #2a313b;
+            --accent: #6c8cff; --accent-text: #0d1117; --ok: #51cf66; --warn: #ff922b; --shadow: none; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); }
+  header { position: sticky; top: 0; z-index: 5; background: var(--panel); border-bottom: 1px solid var(--line); }
+  .bar { max-width: 1100px; margin: 0 auto; padding: 10px 16px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  h1 { font-size: 17px; margin: 0 12px 0 0; }
+  button, select, input { font: inherit; color: inherit; }
+  button { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 6px 12px; cursor: pointer; }
+  button:hover { border-color: var(--accent); }
+  button.primary { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+  button.danger { color: var(--warn); }
+  button:disabled { opacity: .5; cursor: progress; }
+  select, input[type=search] { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; }
+  input[type=search] { flex: 1 1 160px; min-width: 120px; }
+  .tabs { display: flex; gap: 4px; }
+  .tabs button[aria-pressed=true] { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+  main { max-width: 1100px; margin: 0 auto; padding: 16px; }
+  .meta { color: var(--muted); margin: 0 0 12px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; cursor: pointer; box-shadow: var(--shadow); display: flex; flex-direction: column; }
+  .card:hover { border-color: var(--accent); }
+  .cover { aspect-ratio: 3 / 4; background: var(--line); position: relative; }
+  .cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .badge { position: absolute; top: 6px; right: 6px; background: var(--warn); color: #fff; border-radius: 999px; padding: 1px 8px; font-size: 12px; font-weight: 600; }
+  .badge.src { right: auto; left: 6px; background: rgba(0,0,0,.6); font-weight: 500; }
+  .card h3 { font-size: 13.5px; margin: 8px 10px 2px; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .card p { margin: 0 10px 10px; color: var(--muted); font-size: 12.5px; }
+  .empty { text-align: center; color: var(--muted); padding: 60px 0; }
+  .more { display: block; margin: 20px auto; }
+  /* panel + reader */
+  .overlay { position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 20; display: none; }
+  .overlay.open { display: block; }
+  .sheet { position: absolute; right: 0; top: 0; bottom: 0; width: min(560px, 100%); background: var(--panel); overflow-y: auto; padding: 16px; }
+  .sheet .top { display: flex; gap: 14px; }
+  .sheet .top img { width: 120px; border-radius: 8px; align-self: flex-start; background: var(--line); }
+  .sheet h2 { margin: 0 0 6px; font-size: 18px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 4px; margin: 6px 0; }
+  .chip { border: 1px solid var(--line); border-radius: 999px; padding: 0 8px; font-size: 12px; color: var(--muted); }
+  .actions { display: flex; gap: 8px; margin: 12px 0; flex-wrap: wrap; }
+  .desc { color: var(--muted); white-space: pre-line; max-height: 9em; overflow: auto; }
+  .chapters { list-style: none; margin: 12px 0 0; padding: 0; border-top: 1px solid var(--line); }
+  .chapters li { display: flex; justify-content: space-between; gap: 8px; padding: 8px 4px; border-bottom: 1px solid var(--line); cursor: pointer; }
+  .chapters li:hover { background: var(--bg); }
+  .chapters li.read { color: var(--muted); }
+  .chapters .new { color: var(--ok); font-size: 12px; margin-left: 6px; }
+  .reader { background: #000; overflow-y: auto; }
+  .reader .rbar { position: sticky; top: 0; z-index: 2; display: flex; gap: 8px; align-items: center; padding: 8px 12px; background: rgba(20,20,20,.92); color: #eee; }
+  .reader .rbar .grow { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .reader img { display: block; margin: 0 auto; max-width: 100%; width: min(900px, 100%); }
+  .reader .msg { color: #bbb; text-align: center; padding: 40px; }
+  #toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); background: var(--text); color: var(--bg); padding: 8px 16px; border-radius: 8px; z-index: 40; display: none; max-width: 90%; }
+</style>
+</head>
+<body>
+<header>
+  <div class="bar">
+    <h1>Komik Tracker</h1>
+    <div class="tabs" role="group" aria-label="Daftar">
+      <button id="tab-drafts" aria-pressed="true">Draft</button>
+      <button id="tab-tracked" aria-pressed="false">Dipilih</button>
+    </div>
+    <select id="source" aria-label="Sumber"></select>
+    <input id="q" type="search" placeholder="Cari judul…" aria-label="Cari judul">
+    <button id="sync" title="Ambil daftar terbaru dari sumber yang dipilih">Sinkron list</button>
+    <button id="check" title="Cek chapter baru sekarang">Cek update</button>
+  </div>
+</header>
+<main>
+  <p class="meta" id="meta"></p>
+  <div class="grid" id="grid"></div>
+  <div class="empty" id="empty" hidden></div>
+  <button class="more" id="more" hidden>Muat lagi</button>
+</main>
+
+<div class="overlay" id="detail"><div class="sheet" id="sheet"></div></div>
+<div class="overlay reader" id="reader"></div>
+<div id="toast" role="status"></div>
+
+<script>
+const $ = (s) => document.querySelector(s);
+const state = { scope: 'drafts', source: '', q: '', offset: 0, total: 0, limit: 30, open: null };
+
+function el(tag, props = {}, ...kids) {
+  const n = document.createElement(tag);
+  for (const [k, v] of Object.entries(props)) {
+    if (k === 'class') n.className = v;
+    else if (k.startsWith('on')) n.addEventListener(k.slice(2), v);
+    else n.setAttribute(k, v);
+  }
+  for (const k of kids.flat()) if (k != null) n.append(k);   // strings become text nodes, never HTML
+  return n;
+}
+const fmtDate = (t) => /^\d{4}-\d{2}-\d{2}T/.test(t || '') ? new Date(t).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : (t || '');
+const safeUrl = (u) => /^https?:\/\//i.test(u || '') ? u : '';
+function cover(url, alt) {
+  const img = el('img', { alt, loading: 'lazy', referrerpolicy: 'no-referrer' });
+  if (safeUrl(url)) img.src = url;
+  img.addEventListener('error', () => img.remove());
+  return img;
+}
+function toast(msg, ms = 3500) {
+  const t = $('#toast'); t.textContent = msg; t.style.display = 'block';
+  clearTimeout(toast.t); toast.t = setTimeout(() => t.style.display = 'none', ms);
+}
+async function api(path, opts) {
+  const r = await fetch(path, opts);
+  if (!r.ok) {
+    let msg = r.statusText;
+    try { msg = (await r.json()).detail || msg; } catch {}
+    throw new Error(msg);
+  }
+  return r.json();
+}
+async function busy(btn, label, fn) {
+  const old = btn.textContent; btn.disabled = true; btn.textContent = label;
+  try { return await fn(); } catch (e) { toast('Gagal: ' + e.message, 6000); }
+  finally { btn.disabled = false; btn.textContent = old; }
+}
+
+async function loadSources() {
+  const list = await api('/api/sources');
+  const sel = $('#source');
+  sel.replaceChildren(el('option', { value: '' }, 'Semua sumber'),
+    ...list.map(s => el('option', { value: s.name }, `${s.name} (${s.comics})`)));
+  sel.value = state.source;
+}
+
+async function load(append = false) {
+  if (!append) { state.offset = 0; $('#grid').replaceChildren(); }
+  const p = new URLSearchParams({ scope: state.scope, limit: state.limit, offset: state.offset });
+  if (state.source) p.set('source', state.source);
+  if (state.q) p.set('q', state.q);
+  let data;
+  try { data = await api('/api/comics?' + p); } catch (e) { toast('Gagal memuat: ' + e.message, 6000); return; }
+  state.total = data.total;
+  $('#grid').append(...data.items.map(card));
+  state.offset += data.items.length;
+  $('#meta').textContent = `${state.total} komik` + (state.scope === 'drafts' ? ' di draft' : ' dipilih');
+  $('#more').hidden = state.offset >= state.total;
+  const empty = $('#empty');
+  empty.hidden = state.total > 0;
+  empty.textContent = state.scope === 'drafts'
+    ? 'Belum ada draft. Pilih sumber lalu tekan “Sinkron list”.'
+    : 'Belum ada komik yang dipilih. Buka tab Draft dan pilih komik.';
+}
+
+function card(c) {
+  const sub = c.latest_chapter != null ? `Ch. ${c.latest_chapter}` : '';
+  return el('div', { class: 'card', tabindex: 0, onclick: () => openDetail(c.id), onkeydown: (e) => e.key === 'Enter' && openDetail(c.id) },
+    el('div', { class: 'cover' }, cover(c.cover_url, c.title), el('span', { class: 'badge src' }, c.source),
+      c.tracked && c.unread > 0 ? el('span', { class: 'badge' }, `${c.unread} baru`) : null),
+    el('h3', {}, c.title), el('p', {}, sub));
+}
+
+async function openDetail(id) {
+  state.open = id;
+  const c = await api('/api/comics/' + id).catch(e => { toast(e.message); });
+  if (!c) return;
+  const sheet = $('#sheet');
+  const trackBtn = el('button', { class: c.tracked ? 'danger' : 'primary' }, c.tracked ? 'Berhenti memilih' : 'Pilih komik');
+  trackBtn.addEventListener('click', () => busy(trackBtn, c.tracked ? 'Memproses…' : (c.detail_fetched_at ? 'Memproses…' : 'Mengambil semua chapter…'), async () => {
+    if (c.tracked) await api(`/api/comics/${id}/track`, { method: 'DELETE' });
+    else { const r = await api(`/api/comics/${id}/track`, { method: 'POST' }); toast(r.first_fetch ? `Tersimpan, ${r.chapters} chapter diambil.` : 'Komik dipilih.'); }
+    await Promise.all([openDetail(id), load()]);
+  }));
+  const readBtn = el('button', {}, 'Tandai semua dibaca');
+  readBtn.addEventListener('click', () => busy(readBtn, '…', async () => {
+    await api(`/api/comics/${id}/read`, { method: 'POST' }); await Promise.all([openDetail(id), load()]);
+  }));
+  const maxRead = c.chapters.find(ch => ch.read);
+  sheet.replaceChildren(...[
+    el('button', { onclick: closeDetail, style: 'float:right' }, 'Tutup'),
+    el('div', { class: 'top' }, cover(c.cover_url, c.title),
+      el('div', {},
+        el('h2', {}, c.title),
+        el('div', { class: 'chips' }, el('span', { class: 'chip' }, c.source), c.status ? el('span', { class: 'chip' }, c.status) : null,
+          c.year ? el('span', { class: 'chip' }, c.year) : null, ...c.genres.map(g => el('span', { class: 'chip' }, g))),
+        c.authors.length ? el('div', { class: 'meta' }, 'Oleh ' + c.authors.join(', ')) : null,
+        c.alt_titles.length ? el('div', { class: 'meta' }, c.alt_titles.join(' • ')) : null)),
+    el('div', { class: 'actions' }, trackBtn, c.tracked && c.chapters.length ? readBtn : null),
+    c.description ? el('div', { class: 'desc' }, c.description) : null,
+    c.detail_fetched_at ? null : el('p', { class: 'meta' }, 'Ini masih draft: chapter baru diambil setelah komik dipilih.'),
+    c.chapters.length ? el('ul', { class: 'chapters' }, ...c.chapters.map(ch =>
+      el('li', { class: ch.read ? 'read' : '', onclick: () => openReader(c, ch) },
+        el('span', {}, ch.title || `Chapter ${ch.number}`), el('span', { class: 'meta', style: 'margin:0' }, fmtDate(ch.released_at))))) : null
+  ].filter(Boolean));
+  $('#detail').classList.add('open');
+}
+function closeDetail() { $('#detail').classList.remove('open'); state.open = null; }
+
+async function openReader(c, ch) {
+  const r = $('#reader');
+  const title = `${c.title} — ${ch.title || 'Chapter ' + ch.number}`;
+  const idx = c.chapters.findIndex(x => x.id === ch.id);          // list is newest first
+  const go = (ni) => c.chapters[ni] && openReader(c, c.chapters[ni]);
+  r.replaceChildren(
+    el('div', { class: 'rbar' },
+      el('button', { onclick: () => go(idx + 1), disabled: idx + 1 >= c.chapters.length ? '' : null }, '‹ Sebelumnya'),
+      el('span', { class: 'grow' }, title),
+      el('button', { onclick: () => go(idx - 1), disabled: idx <= 0 ? '' : null }, 'Berikutnya ›'),
+      el('button', { onclick: () => { r.classList.remove('open'); r.replaceChildren(); openDetail(c.id); } }, 'Tutup')),
+    el('div', { class: 'msg' }, 'Memuat gambar…'));
+  r.classList.add('open'); r.scrollTop = 0;
+  try {
+    const { images } = await api(`/api/chapters/${ch.id}/images`);
+    if (!r.classList.contains('open')) return;
+    r.querySelector('.msg').replaceWith(...images.filter(safeUrl).map(u => el('img', { src: u, loading: 'lazy', referrerpolicy: 'no-referrer', alt: '' })));
+    if (c.tracked) api(`/api/comics/${c.id}/read?upto=${ch.number}`, { method: 'POST' }).then(() => load()).catch(() => {});
+  } catch (e) { const m = r.querySelector('.msg'); if (m) m.textContent = 'Gagal memuat gambar: ' + e.message; }
+}
+
+// ---- wiring ----
+function setScope(s) {
+  state.scope = s;
+  $('#tab-drafts').setAttribute('aria-pressed', s === 'drafts');
+  $('#tab-tracked').setAttribute('aria-pressed', s === 'tracked');
+  load();
+}
+$('#tab-drafts').onclick = () => setScope('drafts');
+$('#tab-tracked').onclick = () => setScope('tracked');
+$('#source').onchange = (e) => { state.source = e.target.value; load(); };
+let qTimer; $('#q').oninput = (e) => { clearTimeout(qTimer); qTimer = setTimeout(() => { state.q = e.target.value.trim(); load(); }, 300); };
+$('#more').onclick = () => load(true);
+$('#sync').onclick = (e) => {
+  if (!state.source) return toast('Pilih satu sumber dulu untuk sinkron list.');
+  busy(e.target, 'Mengambil…', async () => {
+    const r = await api(`/api/sources/${state.source}/sync?pages=2`, { method: 'POST' });
+    toast(`${r.seen} komik dari ${state.source} dicek.`); await Promise.all([loadSources(), load()]);
+  });
+};
+$('#check').onclick = (e) => busy(e.target, 'Mengecek…', async () => {
+  const r = await api('/api/check' + (state.source ? '?source=' + state.source : ''), { method: 'POST' });
+  toast(r.updates.length ? r.updates.map(u => `${u.title}: ${u.new.join(', ')}`).join(' | ') : 'Tidak ada chapter baru.', 7000);
+  await load();
+});
+$('#detail').addEventListener('click', (e) => { if (e.target.id === 'detail') closeDetail(); });
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  if ($('#reader').classList.contains('open')) { $('#reader').classList.remove('open'); $('#reader').replaceChildren(); }
+  else closeDetail();
+});
+
+loadSources().then(() => load());
+</script>
+</body>
+</html>
