@@ -23,6 +23,11 @@ class Source(ABC):
     def chapter_images(self, chapter_id: str) -> list[str]:
         """Return absolute image URLs in reading order."""
 
+    def quick_latest(self, comic_id: str) -> float | None:
+        """Cheap check: latest chapter number in one small request, or None if
+        the site offers no such shortcut (callers then fall back to list_chapters)."""
+        return None
+
     # Image hosts may require headers (e.g. Referer); override if needed.
     image_headers: dict = {}
 

@@ -48,6 +48,9 @@ class Shinigami(Source):
     def get_comic(self, comic_id):
         return self._comic(self.api.get_json(f"manga/detail/{comic_id}")["data"])
 
+    def quick_latest(self, comic_id):
+        return self.get_comic(comic_id).latest_chapter
+
     def list_chapters(self, comic_id):
         chapters, page = [], 1
         while True:
